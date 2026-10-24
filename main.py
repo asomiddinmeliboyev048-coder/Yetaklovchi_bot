@@ -26,16 +26,12 @@ from database import (
     save_user,
     get_user,
     save_user_city,
+    save_user_profile,
     set_prayer_reminders,
     get_reminder_users,
     claim_prayer_reminder,
     release_prayer_reminder,
 )
-
-
-# =========================================================
-# BOT SOZLAMALARI
-# =========================================================
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,7 +46,6 @@ bot = Bot(
 )
 
 dp = Dispatcher()
-
 UZBEKISTAN_TZ = timezone(timedelta(hours=5))
 
 
@@ -224,14 +219,13 @@ TEXTS = {
         "welcome": (
             "Assalomu alaykum, <b>{name}</b>! 🌙\n\n"
             "Yetaklovchi botiga xush kelibsiz.\n"
-            "Bu yerda namoz vaqtlari, foydali eslatmalar, "
-            "duolar va kundalik zikrlarni topasiz."
+            "Namoz vaqtlari va foydali eslatmalarni olish uchun "
+            "telefon raqamingizni ulashing."
         ),
         "language": "🌐 Tilni tanlang:",
         "menu": "🏠 <b>Asosiy menyu</b>\n\nKerakli bo‘limni tanlang:",
         "prayer": "🕌 Namoz vaqtlari",
         "reminders": "🔔 Eslatmalar",
-        "duas": "🤲 Duolar va zikrlar",
         "settings": "⚙️ Sozlamalar",
         "choose_city": (
             "📍 Namoz vaqtlarini ko‘rish uchun usulni tanlang.\n\n"
@@ -240,8 +234,7 @@ TEXTS = {
         "location_button": "📍 Lokatsiyani yuborish",
         "location_prompt": (
             "Quyidagi tugmani bosib, Telegram orqali lokatsiyangizni yuboring.\n\n"
-            "🔒 Koordinatalar bot bazasida saqlanmaydi. "
-            "Hududni aniqlash uchun geocoding xizmatiga yuboriladi."
+            "🔒 Koordinatalar bot bazasida saqlanmaydi."
         ),
         "location_received": "📍 Lokatsiya qabul qilindi. Hudud aniqlanmoqda...",
         "location_success": "✅ Aniqlangan hudud: <b>{city}</b>",
@@ -270,11 +263,6 @@ TEXTS = {
             "🕰 Vaqt: <b>{time}</b>\n\n"
             "Alloh ibodatlaringizni qabul qilsin! 🤲"
         ),
-        "duas_info": (
-            "🤲 <b>Duolar va zikrlar</b>\n\n"
-            "Bu bo‘limda ishonchli manbalarga asoslangan "
-            "duolar va kundalik zikrlar joylashtiriladi."
-        ),
         "settings_info": (
             "⚙️ <b>Sozlamalar</b>\n\n"
             "Tilni o‘zgartirish yoki shaharni qayta tanlash mumkin."
@@ -297,14 +285,13 @@ TEXTS = {
         "welcome": (
             "Ассалому алайкум, <b>{name}</b>! 🌙\n\n"
             "Yetaklovchi ботига хуш келибсиз.\n"
-            "Бу ерда намоз вақтлари, фойдали эслатмалар, "
-            "дуолар ва кундалик зикрларни топасиз."
+            "Намоз вақтлари ва фойдали эслатмаларни олиш учун "
+            "телефон рақамингизни улашинг."
         ),
         "language": "🌐 Тилни танланг:",
         "menu": "🏠 <b>Асосий меню</b>\n\nКеракли бўлимни танланг:",
         "prayer": "🕌 Намоз вақтлари",
         "reminders": "🔔 Эслатмалар",
-        "duas": "🤲 Дуолар ва зикрлар",
         "settings": "⚙️ Созламалар",
         "choose_city": (
             "📍 Намоз вақтларини кўриш усулини танланг.\n\n"
@@ -313,8 +300,7 @@ TEXTS = {
         "location_button": "📍 Локацияни юбориш",
         "location_prompt": (
             "Қуйидаги тугмани босиб, Telegram орқали локациянгизни юборинг.\n\n"
-            "🔒 Координаталар бот базасида сақланмайди. "
-            "Ҳудудни аниқлаш учун геокодлаш хизматига юборилади."
+            "🔒 Координаталар базада сақланмайди."
         ),
         "location_received": "📍 Локация қабул қилинди. Ҳудуд аниқланмоқда...",
         "location_success": "✅ Аниқланган ҳудуд: <b>{city}</b>",
@@ -342,11 +328,6 @@ TEXTS = {
             "📍 Шаҳар: <b>{city}</b>\n"
             "🕰 Вақт: <b>{time}</b>\n\n"
             "Аллоҳ ибодатларингизни қабул қилсин! 🤲"
-        ),
-        "duas_info": (
-            "🤲 <b>Дуолар ва зикрлар</b>\n\n"
-            "Бу бўлимда ишончли манбаларга асосланган "
-            "дуолар ва кундалик зикрлар жойлаштирилади."
         ),
         "settings_info": (
             "⚙️ <b>Созламалар</b>\n\n"
@@ -416,15 +397,18 @@ def main_keyboard(lang: str) -> InlineKeyboardMarkup:
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=t["prayer"], callback_data="menu:prayer")],
-            [
-                InlineKeyboardButton(
-                    text=t["reminders"],
-                    callback_data="menu:reminders",
-                ),
-                InlineKeyboardButton(text=t["duas"], callback_data="menu:duas"),
-            ],
-            [InlineKeyboardButton(text=t["settings"], callback_data="menu:settings")],
+            [InlineKeyboardButton(
+                text=t["prayer"],
+                callback_data="menu:prayer",
+            )],
+            [InlineKeyboardButton(
+                text=t["reminders"],
+                callback_data="menu:reminders",
+            )],
+            [InlineKeyboardButton(
+                text=t["settings"],
+                callback_data="menu:settings",
+            )],
         ]
     )
 
@@ -445,14 +429,13 @@ def city_keyboard(lang: str) -> InlineKeyboardMarkup:
     rows = []
 
     for index in range(0, len(items), 2):
-        row = [
+        rows.append([
             InlineKeyboardButton(
                 text=f"📍 {name}",
                 callback_data=f"city:{key}",
             )
             for key, name in items[index:index + 2]
-        ]
-        rows.append(row)
+        ])
 
     rows.append([
         InlineKeyboardButton(
@@ -478,6 +461,26 @@ def location_request_keyboard(lang: str) -> ReplyKeyboardMarkup:
     )
 
 
+def contact_request_keyboard(lang: str) -> ReplyKeyboardMarkup:
+    text = (
+        "📱 Телефон рақамни улашиш"
+        if lang == "uz_cyr"
+        else "📱 Telefon raqamni ulashish"
+    )
+
+    return ReplyKeyboardMarkup(
+        keyboard=[[
+            KeyboardButton(
+                text=text,
+                request_contact=True,
+            )
+        ]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder=text,
+    )
+
+
 def settings_keyboard(lang: str) -> InlineKeyboardMarkup:
     t = TEXTS[lang]
 
@@ -499,10 +502,7 @@ def settings_keyboard(lang: str) -> InlineKeyboardMarkup:
     )
 
 
-def reminders_keyboard(
-    lang: str,
-    enabled: bool,
-) -> InlineKeyboardMarkup:
+def reminders_keyboard(lang: str, enabled: bool) -> InlineKeyboardMarkup:
     t = TEXTS[lang]
 
     return InlineKeyboardMarkup(
@@ -590,12 +590,7 @@ async def fetch_prayer_times(city: str) -> dict:
         "Isha": "xufton",
     }
 
-    missing = [
-        api_key for api_key in mapping.values()
-        if not timings.get(api_key)
-    ]
-
-    if missing:
+    if any(not timings.get(key) for key in mapping.values()):
         raise ValueError("API barcha namoz vaqtlarini qaytarmadi.")
 
     return {
@@ -658,7 +653,7 @@ async def send_prayer_times(
 
 
 # =========================================================
-# /START VA /LANGUAGE
+# /START VA TELEFON RAQAMI
 # =========================================================
 
 @dp.message(CommandStart())
@@ -667,20 +662,77 @@ async def start_handler(message: Message) -> None:
     if user is None:
         return
 
+    await save_user(user.id, "uz")
     user_data = await get_user(user.id)
 
-    if user_data is None:
-        await save_user(user.id, "uz")
-        await message.answer(
-            TEXTS["uz"]["welcome"].format(name=user.full_name),
-            reply_markup=language_keyboard(),
-        )
-        return
-
-    lang = user_data.get("language", "uz")
+    lang = user_data.get("language", "uz") if user_data else "uz"
     if lang not in TEXTS:
         lang = "uz"
 
+    # Telegram'dan kelgan ism va username profilga yangilanadi.
+    await save_user_profile(
+        telegram_id=user.id,
+        first_name=user.first_name or "",
+        last_name=user.last_name,
+        username=user.username,
+    )
+
+    user_data = await get_user(user.id)
+
+    if user_data and user_data.get("phone_number"):
+        await message.answer(
+            TEXTS[lang]["menu"],
+            reply_markup=main_keyboard(lang),
+        )
+        return
+
+    await message.answer(
+        TEXTS[lang]["welcome"].format(name=user.full_name)
+        + "\n\n📱 Davom etish uchun telefon raqamingizni ulashing.",
+        reply_markup=contact_request_keyboard(lang),
+    )
+
+
+@dp.message(F.contact)
+async def contact_handler(message: Message) -> None:
+    user = message.from_user
+    contact = message.contact
+
+    if user is None or contact is None:
+        return
+
+    lang = await get_saved_language(user.id)
+
+    # Faqat jo'natuvchining o'z Telegram kontakti qabul qilinadi.
+    if contact.user_id != user.id:
+        await message.answer(
+            "Iltimos, faqat o'zingizning Telegram kontaktingizni "
+            "ulashing.",
+            reply_markup=contact_request_keyboard(lang),
+        )
+        return
+
+    phone_number = contact.phone_number.strip()
+
+    if not phone_number:
+        await message.answer(
+            "Telefon raqami olinmadi. Qayta urinib ko'ring.",
+            reply_markup=contact_request_keyboard(lang),
+        )
+        return
+
+    await save_user_profile(
+        telegram_id=user.id,
+        first_name=user.first_name or "",
+        last_name=user.last_name,
+        username=user.username,
+        phone_number=phone_number,
+    )
+
+    await message.answer(
+        "✅ Telefon raqamingiz va profilingiz saqlandi!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     await message.answer(
         TEXTS[lang]["menu"],
         reply_markup=main_keyboard(lang),
@@ -781,7 +833,6 @@ async def location_handler(message: Message) -> None:
     latitude = message.location.latitude
     longitude = message.location.longitude
 
-    # Koordinatalar bazaga saqlanmaydi va logga chiqarilmaydi.
     await message.answer(
         TEXTS[lang]["location_received"],
         reply_markup=ReplyKeyboardRemove(),
@@ -798,9 +849,22 @@ async def location_handler(message: Message) -> None:
             )
             return
 
-        # GPS orqali topilgan shahar ataylab bazaga saqlanmaydi.
+        # GPS koordinatalari saqlanmaydi. Eslatmalar uchun shahar
+        # tanlanishini foydalanuvchining o'zi tasdiqlashi kerak.
         await message.answer(
-            TEXTS[lang]["location_success"].format(city=CITIES[city])
+            TEXTS[lang]["location_success"].format(city=CITIES[city]),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="✅ Shu shaharni saqlash",
+                        callback_data=f"city:{city}",
+                    )],
+                    [InlineKeyboardButton(
+                        text=TEXTS[lang]["choose_city_button"],
+                        callback_data="menu:choose_city",
+                    )],
+                ]
+            ),
         )
 
         await send_prayer_times(
@@ -848,21 +912,16 @@ async def menu_callback(callback: CallbackQuery) -> None:
 
         if saved_city and saved_city in CITIES:
             if callback.message:
-                await send_prayer_times(
-                    callback.message,
-                    saved_city,
-                    lang,
-                )
-        else:
-            if callback.message:
-                await callback.message.answer(
-                    t["choose_city"],
-                    reply_markup=city_keyboard(lang),
-                )
-                await callback.message.answer(
-                    t["location_prompt"],
-                    reply_markup=location_request_keyboard(lang),
-                )
+                await send_prayer_times(callback.message, saved_city, lang)
+        elif callback.message:
+            await callback.message.answer(
+                t["choose_city"],
+                reply_markup=city_keyboard(lang),
+            )
+            await callback.message.answer(
+                t["location_prompt"],
+                reply_markup=location_request_keyboard(lang),
+            )
 
     elif section == "choose_city":
         if callback.message:
@@ -900,13 +959,6 @@ async def menu_callback(callback: CallbackQuery) -> None:
             await callback.message.answer(
                 reminder_text,
                 reply_markup=reminders_keyboard(lang, enabled),
-            )
-
-    elif section == "duas":
-        if callback.message:
-            await callback.message.answer(
-                t["duas_info"],
-                reply_markup=back_keyboard(lang),
             )
 
     elif section == "settings":
@@ -990,11 +1042,27 @@ async def reminder_callback(callback: CallbackQuery) -> None:
 
 
 # =========================================================
+# SOZLAMALAR: TILNI O'ZGARTIRISH
+# =========================================================
+
+@dp.callback_query(F.data == "settings:language")
+async def settings_language_callback(callback: CallbackQuery) -> None:
+    lang = await get_saved_language(callback.from_user.id)
+
+    if callback.message:
+        await callback.message.answer(
+            TEXTS[lang]["select_language"],
+            reply_markup=language_keyboard(),
+        )
+
+    await callback.answer()
+
+
+# =========================================================
 # NAMOZ ESLATMALARINI AVTOMATIK YUBORISH
 # =========================================================
 
 async def prayer_reminder_worker() -> None:
-    # Quyosh chiqishi namoz emas, shuning uchun kiritilmagan.
     prayer_keys = ("Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
 
     logger.info("Namoz eslatmalari xizmati ishga tushdi.")
@@ -1043,8 +1111,6 @@ async def prayer_reminder_worker() -> None:
                     if prayer_time != current_time:
                         continue
 
-                    # Bir foydalanuvchi uchun bir namozni kuniga
-                    # qayta-qayta yubormaslik uchun DB qaydi.
                     claimed = await claim_prayer_reminder(
                         user_id,
                         today,
@@ -1055,12 +1121,9 @@ async def prayer_reminder_worker() -> None:
                         continue
 
                     prayer_names = dict(PRAYER_NAMES[lang])
-                    prayer_name = prayer_names.get(
-                        prayer_key,
-                        prayer_key,
-                    )
+                    prayer_name = prayer_names.get(prayer_key, prayer_key)
 
-                    text = t_text = TEXTS[lang]["reminder_message"].format(
+                    text = TEXTS[lang]["reminder_message"].format(
                         prayer=prayer_name,
                         city=CITIES.get(city, city),
                         time=prayer_time,
@@ -1103,23 +1166,6 @@ async def prayer_reminder_worker() -> None:
             logger.exception("Eslatmalar siklida kutilmagan xatolik.")
 
         await asyncio.sleep(20)
-
-
-# =========================================================
-# SOZLAMALAR: TILNI O'ZGARTIRISH
-# =========================================================
-
-@dp.callback_query(F.data == "settings:language")
-async def settings_language_callback(callback: CallbackQuery) -> None:
-    lang = await get_saved_language(callback.from_user.id)
-
-    if callback.message:
-        await callback.message.answer(
-            TEXTS[lang]["select_language"],
-            reply_markup=language_keyboard(),
-        )
-
-    await callback.answer()
 
 
 # =========================================================
